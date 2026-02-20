@@ -56,7 +56,7 @@ component WifiCard() {
 
   <div class="container">
     <header class="header">
-      <div class="logo">📡</div>
+      <div class="logo">{'📡'}</div>
       <h1>{'WiFi QR Code'}</h1>
       <p class="subtitle">{'Gere QR codes personalizados para conexão automática'}</p>
     </header>
@@ -121,7 +121,7 @@ component WifiCard() {
           }
         </div>
         if (@ssid) {
-          <div class="network-badge">{'📡 Rede: '}<span class="network-name">{@ssid}</span></div>
+          <div class="network-badge">{'📡'}{' Rede: '}<span class="network-name">{@ssid}</span></div>
         }
         <div class="actions">
           <button class="btn-primary" onClick={downloadQR}>{'⬇️ Baixar'}</button>
@@ -132,17 +132,17 @@ component WifiCard() {
 
     <div class="features">
       <div class="feature">
-        <div class="feature-icon">⚡</div>
+        <div class="feature-icon">{'⚡'}</div>
         <h3>{'Conexão Instantânea'}</h3>
         <p>{'Escaneie e conecte automaticamente'}</p>
       </div>
       <div class="feature">
-        <div class="feature-icon">🎨</div>
+        <div class="feature-icon">{'🎨'}</div>
         <h3>{'Totalmente Customizável'}</h3>
         <p>{'Cores e tamanho ajustáveis'}</p>
       </div>
       <div class="feature">
-        <div class="feature-icon">🔒</div>
+        <div class="feature-icon">{'🔒'}</div>
         <h3>{'100% Seguro'}</h3>
         <p>{'Processamento local, sem servidores'}</p>
       </div>
