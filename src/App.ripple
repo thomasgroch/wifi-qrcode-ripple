@@ -1,30 +1,197 @@
 import { track, effect } from 'ripple';
 import QRCode from 'qrcode';
 
+component AnimatedBackground() {
+  let particles = track([]);
+  let mouseX = track(0);
+  let mouseY = track(0);
+
+  const initParticles = () => {
+    const p = [];
+    for (let i = 0; i < 50; i++) {
+      p.push({
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: Math.random() * 4 + 1,
+        speedX: (Math.random() - 0.5) * 0.5,
+        speedY: (Math.random() - 0.5) * 0.5,
+        opacity: Math.random() * 0.5 + 0.2
+      });
+    }
+    @particles = p;
+  };
+
+  effect(() => {
+    initParticles();
+    const animate = () => {
+      @particles = @particles.map(p => ({
+        ...p,
+        x: (p.x + p.speedX + 100) % 100,
+        y: (p.y + p.speedY + 100) % 100
+      }));
+      requestAnimationFrame(animate);
+    };
+    animate();
+  });
+
+  const handleMouseMove = (e) => {
+    @mouseX = (e.clientX / window.innerWidth) * 100;
+    @mouseY = (e.clientY / window.innerHeight) * 100;
+  };
+
+  <div class="bg-container" onMouseMove={handleMouseMove}>
+    <div class="gradient-orb orb-1"></div>
+    <div class="gradient-orb orb-2"></div>
+    <div class="gradient-orb orb-3"></div>
+    <div class="grid-overlay"></div>
+    
+    for (const p of particles) {
+      <div 
+        class="particle"
+        style={{
+          left: `${p.x}%`,
+          top: `${p.y}%`,
+          width: `${p.size}px`,
+          height: `${p.size}px`,
+          opacity: p.opacity
+        }}
+      />
+    }
+    
+    <div 
+      class="cursor-glow"
+      style={{
+        left: `${mouseX}%`,
+        top: `${mouseY}%`
+      }}
+    />
+  </div>
+
+  <style>
+    .bg-container {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      z-index: -1;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0d1a2e 100%);
+    }
+    
+    .gradient-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.4;
+      animation: float 20s ease-in-out infinite;
+    }
+    
+    .orb-1 {
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, #ff006e, transparent 70%);
+      top: -10%;
+      left: -10%;
+      animation-delay: 0s;
+    }
+    
+    .orb-2 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, #00f5ff, transparent 70%);
+      bottom: -5%;
+      right: -5%;
+      animation-delay: -7s;
+    }
+    
+    .orb-3 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, #fb5607, transparent 70%);
+      top: 40%;
+      left: 30%;
+      animation-delay: -14s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(0, 245, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 245, 255, 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: gridMove 20s linear infinite;
+    }
+    
+    @keyframes gridMove {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(50px, 50px); }
+    }
+    
+    .particle {
+      position: absolute;
+      background: #00f5ff;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #00f5ff;
+      pointer-events: none;
+    }
+    
+    .cursor-glow {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(0, 245, 255, 0.15), transparent 70%);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      transition: left 0.3s ease-out, top 0.3s ease-out;
+    }
+  </style>
+}
+
 component WifiCard() {
   let ssid = track(localStorage.getItem('lastWifiSsid') || '');
   let password = track('');
   let security = track('WPA');
-  let qrColor = track('#000000');
-  let bgColor = track('#ffffff');
-  let size = track(250);
+  let qrColor = track('#00f5ff');
+  let bgColor = track('#0a0a1a');
+  let size = track(280);
   let qrDataUrl = track('');
   let showToast = track(false);
   let toastMsg = track('');
+  let isGenerating = track(false);
+  let mounted = track(false);
+  let showPassword = track(false);
+
+  effect(() => {
+    setTimeout(() => @mounted = true, 100);
+  });
 
   const generateQR = async () => {
     if (!@ssid) {
       @qrDataUrl = '';
       return;
     }
+    @isGenerating = true;
     localStorage.setItem('lastWifiSsid', @ssid);
     const wifiString = `WIFI:T:${@security};S:${@ssid};P:${@password};;`;
+    
     try {
+      await new Promise(r => setTimeout(r, 300));
       @qrDataUrl = await QRCode.toDataURL(wifiString, {
-        width: @size, margin: 2,
+        width: @size,
+        margin: 2,
         color: { dark: @qrColor, light: @bgColor }
       });
-    } catch (err) { console.error('QR Error:', err); }
+    } catch (err) { 
+      console.error('QR Error:', err); 
+    } finally {
+      @isGenerating = false;
+    }
   };
 
   effect(() => { generateQR(); });
@@ -44,157 +211,1000 @@ component WifiCard() {
       const response = await fetch(@qrDataUrl);
       const blob = await response.blob();
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      showToastMsg('Copiado!');
+      showToastMsg('Copiado para clipboard!');
     } catch { showToastMsg('Erro ao copiar'); }
   };
 
   const showToastMsg = (msg: string) => {
     @toastMsg = msg;
     @showToast = true;
-    setTimeout(() => @showToast = false, 2500);
+    setTimeout(() => @showToast = false, 3000);
   };
 
-  <div class="container">
-    <header class="header">
-      <div class="logo">{'📡'}</div>
-      <h1>{'WiFi QR Code'}</h1>
-      <p class="subtitle">{'Gere QR codes personalizados para conexão automática'}</p>
-    </header>
+  <div class="wrapper">
+    <AnimatedBackground />
+    
+    <div class={`container ${mounted ? 'mounted' : ''}`}>
+      <header class="header">
+        <div class="logo-wrapper">
+          <div class="logo-ring ring-1"></div>
+          <div class="logo-ring ring-2"></div>
+          <div class="logo">{'📡'}</div>
+        </div>
+        <h1 class="title">
+          <span class="title-word">WiFi</span>
+          <span class="title-highlight">QR</span>
+        </h1>
+        <p class="subtitle">Gere QR codes com estilo</p>
+      </header>
 
-    <div class="grid">
-      <div class="card">
-        <h2 class="card-title">{'⚙️ Configurações'}</h2>
-        <div class="field">
-          <label>{'Nome da Rede'}</label>
-          <input type="text" value={@ssid} onInput={(e) => @ssid = e.target.value} placeholder="MinhaRedeWiFi" />
-        </div>
-        <div class="field">
-          <label>{'Senha'}</label>
-          <div class="password-field">
-            <input type="password" value={@password} onInput={(e) => @password = e.target.value} placeholder="Senha da rede" disabled={@security === 'nopass'} />
-            <button class="toggle-btn" onClick={(e) => {
-              const input = e.target.previousElementSibling;
-              input.type = input.type === 'password' ? 'text' : 'password';
-            }} disabled={@security === 'nopass'}>{'👁'}</button>
-          </div>
-        </div>
-        <div class="field">
-          <label>{'Segurança'}</label>
-          <select value={@security} onChange={(e) => @security = e.target.value}>
-            <option value="WPA">{'WPA/WPA2'}</option>
-            <option value="WEP">{'WEP'}</option>
-            <option value="nopass">{'Sem senha'}</option>
-          </select>
-        </div>
-        <div class="colors">
-          <p class="section-title">{'Cores'}</p>
-          <div class="color-row">
-            <div class="color-field">
-              <label>{'QR Code'}</label>
-              <div class="color-input">
-                <input type="color" value={@qrColor} onInput={(e) => @qrColor = e.target.value} />
-                <span class="color-value">{@qrColor}</span>
-              </div>
-            </div>
-            <div class="color-field">
-              <label>{'Fundo'}</label>
-              <div class="color-input">
-                <input type="color" value={@bgColor} onInput={(e) => @bgColor = e.target.value} />
-                <span class="color-value">{@bgColor}</span>
-              </div>
+      <div class="cards-wrapper">
+        <div class="card config-card">
+          <div class="card-glow"></div>
+          <h2 class="card-title">
+            <span class="title-icon">{'⚡'}</span>
+            <span>Configurações</span>
+          </h2>
+          
+          <div class="field-group">
+            <label class="field-label">
+              <span class="label-text">Nome da Rede</span>
+              <span class="label-line"></span>
+            </label>
+            <div class="input-wrapper">
+              <input 
+                type="text" 
+                value={@ssid}
+                onInput={(e) => @ssid = e.target.value}
+                placeholder="Digite o SSID"
+                class="input"
+              />
+              <div class="input-glow"></div>
             </div>
           </div>
-        </div>
-        <div class="field">
-          <label>{'Tamanho: '}{@size}{'px'}</label>
-          <input type="range" min="150" max="400" value={@size} onInput={(e) => @size = parseInt(e.target.value)} class="slider" />
-        </div>
-      </div>
 
-      <div class="card qr-card">
-        <h2 class="card-title">{'📱 QR Code'}</h2>
-        <div class="qr-wrapper">
-          if (@qrDataUrl) {
-            <img src={@qrDataUrl} alt="WiFi QR Code" class="qr-image" />
-          } else {
-            <div class="qr-placeholder">{'Digite o nome da rede'}</div>
+          <div class="field-group">
+            <label class="field-label">
+              <span class="label-text">Senha</span>
+              <span class="label-line"></span>
+            </label>
+            <div class="input-wrapper">
+              <input 
+                type={@showPassword ? 'text' : 'password'}
+                value={@password}
+                onInput={(e) => @password = e.target.value}
+                placeholder="Senha da rede"
+                class="input"
+                disabled={@security === 'nopass'}
+              />
+              <button 
+                class="toggle-btn"
+                onClick={() => @showPassword = !@showPassword}
+                disabled={@security === 'nopass'}
+              >
+                {@showPassword ? '🙈' : '👁'}
+              </button>
+              <div class="input-glow"></div>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">
+              <span class="label-text">Segurança</span>
+              <span class="label-line"></span>
+            </label>
+            <div class="select-wrapper">
+              <select 
+                value={@security}
+                onChange={(e) => @security = e.target.value}
+                class="select"
+              >
+                <option value="WPA">WPA / WPA2</option>
+                <option value="WEP">WEP</option>
+                <option value="nopass">Sem senha</option>
+              </select>
+              <div class="select-arrow">{'▼'}</div>
+            </div>
+          </div>
+
+          <div class="customize-section">
+            <h3 class="section-title">Personalização</h3>
+            
+            <div class="color-grid">
+              <div class="color-field">
+                <label>Cor do QR</label>
+                <div class="color-picker-wrapper">
+                  <input 
+                    type="color" 
+                    value={@qrColor}
+                    onInput={(e) => @qrColor = e.target.value}
+                    class="color-input"
+                  />
+                  <div class="color-preview" style={{ background: @qrColor }}></div>
+                  <span class="color-value">{@qrColor}</span>
+                </div>
+              </div>
+              
+              <div class="color-field">
+                <label>Fundo</label>
+                <div class="color-picker-wrapper">
+                  <input 
+                    type="color" 
+                    value={@bgColor}
+                    onInput={(e) => @bgColor = e.target.value}
+                    class="color-input"
+                  />
+                  <div class="color-preview" style={{ background: @bgColor }}></div>
+                  <span class="color-value">{@bgColor}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="size-field">
+              <label>Tamanho: <strong>{@size}px</strong></label>
+              <input 
+                type="range" 
+                min="200" 
+                max="400" 
+                value={@size}
+                onInput={(e) => @size = parseInt(e.target.value)}
+                class="size-slider"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="card qr-card">
+          <div class="card-glow"></div>
+          <h2 class="card-title">
+            <span class="title-icon">{'📱'}</span>
+            <span>Seu QR Code</span>
+          </h2>
+          
+          <div class={`qr-container ${isGenerating ? 'generating' : ''}`}>
+            if (@qrDataUrl) {
+              <div class="qr-wrapper">
+                <div class="qr-frame">
+                  <img src={@qrDataUrl} alt="WiFi QR" class="qr-image" />
+                  <div class="qr-shine"></div>
+                </div>
+                <div class="qr-glow" style={{ 
+                  background: `radial-gradient(circle, ${qrColor}40, transparent 70%)` 
+                }}></div>
+              </div>
+            } else {
+              <div class="qr-placeholder">
+                <div class="placeholder-icon">{'📡'}</div>
+                <p>Digite o nome da rede</p>
+              </div>
+            }
+          </div>
+
+          if (@ssid) {
+            <div class="network-info">
+              <div class="signal-bars">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar active"></div>
+              </div>
+              <span class="network-name">{@ssid}</span>
+            </div>
           }
-        </div>
-        if (@ssid) {
-          <div class="network-badge">{'📡'}{' Rede: '}<span class="network-name">{@ssid}</span></div>
-        }
-        <div class="actions">
-          <button class="btn-primary" onClick={downloadQR}>{'⬇️ Baixar'}</button>
-          <button class="btn-secondary" onClick={copyQR}>{'📋 Copiar'}</button>
+
+          <div class="actions">
+            <button 
+              class="btn btn-primary"
+              onClick={downloadQR}
+              disabled={!@qrDataUrl}
+            >
+              <span class="btn-icon">{'⬇'}</span>
+              <span class="btn-text">Baixar</span>
+              <div class="btn-glow"></div>
+            </button>
+            <button 
+              class="btn btn-secondary"
+              onClick={copyQR}
+              disabled={!@qrDataUrl}
+            >
+              <span class="btn-icon">{'📋'}</span>
+              <span class="btn-text">Copiar</span>
+            </button>
+          </div>
         </div>
       </div>
+
+      <div class="features">
+        <div class="feature-card">
+          <div class="feature-icon pulse">{'⚡'}</div>
+          <h3>Instantâneo</h3>
+          <p>Conexão automática ao escanear</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon spin">{'🎨'}</div>
+          <h3>Personalizável</h3>
+          <p>Cores e tamanho ajustáveis</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon bounce">{'🔒'}</div>
+          <h3>Seguro</h3>
+          <p>Processamento 100% local</p>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <div class="footer-line"></div>
+        <p>Criado com {'💜'} usando Ripple-TS</p>
+      </footer>
     </div>
 
-    <div class="features">
-      <div class="feature">
-        <div class="feature-icon">{'⚡'}</div>
-        <h3>{'Conexão Instantânea'}</h3>
-        <p>{'Escaneie e conecte automaticamente'}</p>
+    if (@showToast) {
+      <div class="toast">
+        <span class="toast-icon">{'✓'}</span>
+        <span>{@toastMsg}</span>
       </div>
-      <div class="feature">
-        <div class="feature-icon">{'🎨'}</div>
-        <h3>{'Totalmente Customizável'}</h3>
-        <p>{'Cores e tamanho ajustáveis'}</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">{'🔒'}</div>
-        <h3>{'100% Seguro'}</h3>
-        <p>{'Processamento local, sem servidores'}</p>
-      </div>
-    </div>
-
-    <footer class="footer">{'Desenvolvido com 💜 para facilitar sua conexão'}</footer>
+    }
   </div>
 
-  if (@showToast) {
-    <div class="toast">{@toastMsg}</div>
-  }
-
   <style>
-    .container { min-height: 100vh; background: linear-gradient(135deg, #0f0f1a, #1a1a2e, #16213e); color: #fff; font-family: 'Inter', sans-serif; padding: 2rem 1rem; }
-    .header { text-align: center; margin-bottom: 2rem; }
-    .logo { width: 60px; height: 60px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem; box-shadow: 0 0 30px rgba(99, 102, 241, 0.5); }
-    h1 { font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .subtitle { color: #94a3b8; }
-    .grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; max-width: 900px; margin: 0 auto; }
-    @media (min-width: 768px) { .grid { grid-template-columns: 1fr 1fr; } }
-    .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 1.5rem; }
-    .card-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
-    .field { margin-bottom: 1rem; }
-    label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 0.5rem; }
-    input, select { width: 100%; padding: 0.75rem 1rem; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: #fff; font-size: 0.95rem; outline: none; }
-    input:focus, select:focus { border-color: #6366f1; }
-    .password-field { position: relative; }
-    .password-field input { padding-right: 3rem; }
-    .toggle-btn { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: #64748b; cursor: pointer; }
-    .colors { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1); }
-    .color-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .color-input { display: flex; align-items: center; gap: 0.5rem; }
-    input[type="color"] { width: 40px; height: 40px; border: none; border-radius: 8px; cursor: pointer; background: none; }
-    .color-value { font-family: monospace; font-size: 0.8rem; color: #64748b; }
-    .slider { width: 100%; accent-color: #6366f1; }
-    .qr-card { display: flex; flex-direction: column; align-items: center; }
-    .qr-wrapper { background: #fff; padding: 1.5rem; border-radius: 16px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); }
-    .qr-image { display: block; border-radius: 8px; }
-    .qr-placeholder { width: 250px; height: 250px; display: flex; align-items: center; justify-content: center; color: #94a3b8; }
-    .network-badge { margin-top: 1rem; padding: 0.5rem 1rem; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 50px; font-size: 0.875rem; }
-    .network-name { color: #818cf8; font-weight: 600; }
-    .actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; width: 100%; }
-    .actions button { flex: 1; padding: 0.75rem 1rem; border: none; border-radius: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
-    .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
-    .btn-secondary { background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); }
-    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; max-width: 900px; margin: 2rem auto 0; }
-    .feature { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.5rem; text-align: center; }
-    .feature-icon { width: 50px; height: 50px; background: rgba(99, 102, 241, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1rem; }
-    .feature h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
-    .feature p { font-size: 0.875rem; color: #94a3b8; }
-    .footer { text-align: center; margin-top: 2rem; color: #64748b; font-size: 0.875rem; }
-    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); padding: 0.75rem 1.5rem; background: rgba(0, 0, 0, 0.9); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 50px; color: #fff; font-size: 0.875rem; z-index: 1000; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    .wrapper {
+      min-height: 100vh;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #fff;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .container.mounted {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      position: relative;
+    }
+
+    .logo-wrapper {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 1.5rem;
+    }
+
+    .logo-ring {
+      position: absolute;
+      border: 2px solid transparent;
+      border-radius: 50%;
+      animation: rotate 10s linear infinite;
+    }
+
+    .ring-1 {
+      inset: 0;
+      border-top-color: #ff006e;
+      border-right-color: #ff006e;
+    }
+
+    .ring-2 {
+      inset: 10px;
+      border-bottom-color: #00f5ff;
+      border-left-color: #00f5ff;
+      animation-direction: reverse;
+      animation-duration: 15s;
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .logo {
+      position: absolute;
+      inset: 20px;
+      background: linear-gradient(135deg, #ff006e, #00f5ff);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      box-shadow: 
+        0 0 30px rgba(255, 0, 110, 0.5),
+        0 0 60px rgba(0, 245, 255, 0.3);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(255, 0, 110, 0.5), 0 0 60px rgba(0, 245, 255, 0.3); }
+      50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(255, 0, 110, 0.7), 0 0 80px rgba(0, 245, 255, 0.5); }
+    }
+
+    .title {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -2px;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: center;
+      gap: 0.3rem;
+    }
+
+    .title-word {
+      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .title-highlight {
+      background: linear-gradient(135deg, #ff006e 0%, #00f5ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 3s ease-in-out infinite;
+    }
+
+    @keyframes gradientShift {
+      0%, 100% { filter: hue-rotate(0deg); }
+      50% { filter: hue-rotate(30deg); }
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: 300;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    .cards-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    @media (max-width: 900px) {
+      .cards-wrapper {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 2rem;
+      overflow: hidden;
+      transition: all 0.4s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-5px);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .card-glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(0, 245, 255, 0.1), transparent 70%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+
+    .card:hover .card-glow {
+      opacity: 1;
+    }
+
+    .card-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .title-icon {
+      font-size: 1.5rem;
+      filter: drop-shadow(0 0 10px rgba(0, 245, 255, 0.5));
+    }
+
+    .field-group {
+      margin-bottom: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .field-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .label-text {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.7);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .label-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.2), transparent);
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input, .select {
+      width: 100%;
+      padding: 1rem 1.25rem;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    .input:focus, .select:focus {
+      border-color: #00f5ff;
+      box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
+    }
+
+    .input-glow {
+      position: absolute;
+      inset: -2px;
+      background: linear-gradient(135deg, #ff006e, #00f5ff);
+      border-radius: 14px;
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.3s ease;
+      filter: blur(8px);
+    }
+
+    .input:focus ~ .input-glow {
+      opacity: 0.5;
+    }
+
+    .toggle-btn {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: all 0.3s ease;
+    }
+
+    .toggle-btn:hover {
+      opacity: 1;
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .select-wrapper {
+      position: relative;
+    }
+
+    .select {
+      appearance: none;
+      cursor: pointer;
+    }
+
+    .select-arrow {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.5);
+      pointer-events: none;
+    }
+
+    .customize-section {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+      z-index: 1;
+    }
+
+    .section-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .color-field label {
+      display: block;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .color-picker-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .color-input {
+      width: 50px;
+      height: 50px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: none;
+      padding: 0;
+    }
+
+    .color-preview {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .color-value {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .size-field {
+      margin-top: 1rem;
+    }
+
+    .size-field label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 0.75rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .size-field strong {
+      color: #00f5ff;
+      font-weight: 600;
+    }
+
+    .size-slider {
+      width: 100%;
+      height: 6px;
+      -webkit-appearance: none;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      outline: none;
+    }
+
+    .size-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, #ff006e, #00f5ff);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+      transition: transform 0.2s ease;
+    }
+
+    .size-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .qr-container {
+      min-height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+      transition: all 0.3s ease;
+    }
+
+    .qr-container.generating {
+      opacity: 0.7;
+    }
+
+    .qr-wrapper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .qr-frame {
+      position: relative;
+      background: #fff;
+      padding: 1.5rem;
+      border-radius: 20px;
+      box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+    }
+
+    .qr-image {
+      display: block;
+      border-radius: 8px;
+      animation: qrAppear 0.5s ease-out;
+    }
+
+    @keyframes qrAppear {
+      from { 
+        opacity: 0;
+        transform: scale(0.8) rotateY(-10deg);
+      }
+      to { 
+        opacity: 1;
+        transform: scale(1) rotateY(0);
+      }
+    }
+
+    .qr-shine {
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 40%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 60%
+      );
+      animation: shine 3s infinite;
+      pointer-events: none;
+    }
+
+    @keyframes shine {
+      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+
+    .qr-glow {
+      position: absolute;
+      width: 150%;
+      height: 150%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      filter: blur(40px);
+      opacity: 0.6;
+    }
+
+    .qr-placeholder {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .placeholder-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.3;
+      animation: floatIcon 3s ease-in-out infinite;
+    }
+
+    @keyframes floatIcon {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .network-info {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      padding: 0.75rem 1.5rem;
+      background: rgba(0, 245, 255, 0.1);
+      border: 1px solid rgba(0, 245, 255, 0.3);
+      border-radius: 50px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .signal-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 16px;
+    }
+
+    .bar {
+      width: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      animation: signalPulse 1.5s ease-in-out infinite;
+    }
+
+    .bar:nth-child(1) { height: 25%; animation-delay: 0s; }
+    .bar:nth-child(2) { height: 50%; animation-delay: 0.1s; }
+    .bar:nth-child(3) { height: 75%; animation-delay: 0.2s; }
+    .bar:nth-child(4) { height: 100%; animation-delay: 0.3s; background: #00f5ff; }
+
+    @keyframes signalPulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    .network-name {
+      font-weight: 600;
+      color: #00f5ff;
+    }
+
+    .actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 1rem 1.5rem;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #ff006e, #ff4d9e);
+      color: #fff;
+      box-shadow: 0 10px 30px rgba(255, 0, 110, 0.3);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 40px rgba(255, 0, 110, 0.5);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.3), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .btn:hover .btn-glow {
+      opacity: 1;
+    }
+
+    .btn-icon {
+      font-size: 1.2rem;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    @media (max-width: 768px) {
+      .features {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .feature-card {
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 2rem;
+      text-align: center;
+      transition: all 0.4s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(0, 245, 255, 0.1), transparent 70%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-10px);
+      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .feature-card:hover::before {
+      opacity: 1;
+    }
+
+    .feature-icon {
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(135deg, rgba(0, 245, 255, 0.2), rgba(255, 0, 110, 0.2));
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .feature-icon.pulse {
+      animation: iconPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes iconPulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(0, 245, 255, 0.3); }
+      50% { box-shadow: 0 0 40px rgba(0, 245, 255, 0.6); }
+    }
+
+    .feature-icon.spin:hover {
+      animation: iconSpin 1s ease-in-out;
+    }
+
+    @keyframes iconSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .feature-icon.bounce:hover {
+      animation: iconBounce 0.6s ease-in-out;
+    }
+
+    @keyframes iconBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .feature-card h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .feature-card p {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.5);
+      position: relative;
+      z-index: 1;
+    }
+
+    .footer {
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .footer-line {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      margin-bottom: 2rem;
+    }
+
+    .footer p {
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.9rem;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      padding: 1rem 2rem;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid rgba(0, 245, 255, 0.5);
+      border-radius: 50px;
+      color: #fff;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      z-index: 1000;
+      opacity: 0;
+      animation: toastIn 0.4s ease forwards, toastOut 0.4s ease 2.6s forwards;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 245, 255, 0.2);
+    }
+
+    @keyframes toastIn {
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    @keyframes toastOut {
+      to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+      }
+    }
+
+    .toast-icon {
+      width: 24px;
+      height: 24px;
+      background: #00f5ff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #000;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
   </style>
 }
 
