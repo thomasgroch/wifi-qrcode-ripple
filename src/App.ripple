@@ -1,0 +1,203 @@
+import { track, effect } from 'ripple';
+import QRCode from 'qrcode';
+
+component WifiCard() {
+  let ssid = track(localStorage.getItem('lastWifiSsid') || '');
+  let password = track('');
+  let security = track('WPA');
+  let qrColor = track('#000000');
+  let bgColor = track('#ffffff');
+  let size = track(250);
+  let qrDataUrl = track('');
+  let showToast = track(false);
+  let toastMsg = track('');
+
+  const generateQR = async () => {
+    if (!@ssid) {
+      @qrDataUrl = '';
+      return;
+    }
+    localStorage.setItem('lastWifiSsid', @ssid);
+    const wifiString = `WIFI:T:${@security};S:${@ssid};P:${@password};;`;
+    try {
+      @qrDataUrl = await QRCode.toDataURL(wifiString, {
+        width: @size, margin: 2,
+        color: { dark: @qrColor, light: @bgColor }
+      });
+    } catch (err) { console.error('QR Error:', err); }
+  };
+
+  effect(() => { generateQR(); });
+
+  const downloadQR = () => {
+    if (!@qrDataUrl) return;
+    const link = document.createElement('a');
+    link.download = `wifi-${@ssid}.png`;
+    link.href = @qrDataUrl;
+    link.click();
+    showToastMsg('Download iniciado!');
+  };
+
+  const copyQR = async () => {
+    if (!@qrDataUrl) return;
+    try {
+      const response = await fetch(@qrDataUrl);
+      const blob = await response.blob();
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      showToastMsg('Copiado!');
+    } catch { showToastMsg('Erro ao copiar'); }
+  };
+
+  const showToastMsg = (msg: string) => {
+    @toastMsg = msg;
+    @showToast = true;
+    setTimeout(() => @showToast = false, 2500);
+  };
+
+  <div class="container">
+    <header class="header">
+      <div class="logo">📡</div>
+      <h1>{'WiFi QR Code'}</h1>
+      <p class="subtitle">{'Gere QR codes personalizados para conexão automática'}</p>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h2 class="card-title">{'⚙️ Configurações'}</h2>
+        <div class="field">
+          <label>{'Nome da Rede'}</label>
+          <input type="text" value={@ssid} onInput={(e) => @ssid = e.target.value} placeholder="MinhaRedeWiFi" />
+        </div>
+        <div class="field">
+          <label>{'Senha'}</label>
+          <div class="password-field">
+            <input type="password" value={@password} onInput={(e) => @password = e.target.value} placeholder="Senha da rede" disabled={@security === 'nopass'} />
+            <button class="toggle-btn" onClick={(e) => {
+              const input = e.target.previousElementSibling;
+              input.type = input.type === 'password' ? 'text' : 'password';
+            }} disabled={@security === 'nopass'}>{'👁'}</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>{'Segurança'}</label>
+          <select value={@security} onChange={(e) => @security = e.target.value}>
+            <option value="WPA">{'WPA/WPA2'}</option>
+            <option value="WEP">{'WEP'}</option>
+            <option value="nopass">{'Sem senha'}</option>
+          </select>
+        </div>
+        <div class="colors">
+          <p class="section-title">{'Cores'}</p>
+          <div class="color-row">
+            <div class="color-field">
+              <label>{'QR Code'}</label>
+              <div class="color-input">
+                <input type="color" value={@qrColor} onInput={(e) => @qrColor = e.target.value} />
+                <span class="color-value">{@qrColor}</span>
+              </div>
+            </div>
+            <div class="color-field">
+              <label>{'Fundo'}</label>
+              <div class="color-input">
+                <input type="color" value={@bgColor} onInput={(e) => @bgColor = e.target.value} />
+                <span class="color-value">{@bgColor}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label>{'Tamanho: '}{@size}{'px'}</label>
+          <input type="range" min="150" max="400" value={@size} onInput={(e) => @size = parseInt(e.target.value)} class="slider" />
+        </div>
+      </div>
+
+      <div class="card qr-card">
+        <h2 class="card-title">{'📱 QR Code'}</h2>
+        <div class="qr-wrapper">
+          if (@qrDataUrl) {
+            <img src={@qrDataUrl} alt="WiFi QR Code" class="qr-image" />
+          } else {
+            <div class="qr-placeholder">{'Digite o nome da rede'}</div>
+          }
+        </div>
+        if (@ssid) {
+          <div class="network-badge">{'📡 Rede: '}<span class="network-name">{@ssid}</span></div>
+        }
+        <div class="actions">
+          <button class="btn-primary" onClick={downloadQR}>{'⬇️ Baixar'}</button>
+          <button class="btn-secondary" onClick={copyQR}>{'📋 Copiar'}</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">⚡</div>
+        <h3>{'Conexão Instantânea'}</h3>
+        <p>{'Escaneie e conecte automaticamente'}</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🎨</div>
+        <h3>{'Totalmente Customizável'}</h3>
+        <p>{'Cores e tamanho ajustáveis'}</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔒</div>
+        <h3>{'100% Seguro'}</h3>
+        <p>{'Processamento local, sem servidores'}</p>
+      </div>
+    </div>
+
+    <footer class="footer">{'Desenvolvido com 💜 para facilitar sua conexão'}</footer>
+  </div>
+
+  if (@showToast) {
+    <div class="toast">{@toastMsg}</div>
+  }
+
+  <style>
+    .container { min-height: 100vh; background: linear-gradient(135deg, #0f0f1a, #1a1a2e, #16213e); color: #fff; font-family: 'Inter', sans-serif; padding: 2rem 1rem; }
+    .header { text-align: center; margin-bottom: 2rem; }
+    .logo { width: 60px; height: 60px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem; box-shadow: 0 0 30px rgba(99, 102, 241, 0.5); }
+    h1 { font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: #94a3b8; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; max-width: 900px; margin: 0 auto; }
+    @media (min-width: 768px) { .grid { grid-template-columns: 1fr 1fr; } }
+    .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 1.5rem; }
+    .card-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
+    .field { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 0.5rem; }
+    input, select { width: 100%; padding: 0.75rem 1rem; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: #fff; font-size: 0.95rem; outline: none; }
+    input:focus, select:focus { border-color: #6366f1; }
+    .password-field { position: relative; }
+    .password-field input { padding-right: 3rem; }
+    .toggle-btn { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: #64748b; cursor: pointer; }
+    .colors { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+    .color-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .color-input { display: flex; align-items: center; gap: 0.5rem; }
+    input[type="color"] { width: 40px; height: 40px; border: none; border-radius: 8px; cursor: pointer; background: none; }
+    .color-value { font-family: monospace; font-size: 0.8rem; color: #64748b; }
+    .slider { width: 100%; accent-color: #6366f1; }
+    .qr-card { display: flex; flex-direction: column; align-items: center; }
+    .qr-wrapper { background: #fff; padding: 1.5rem; border-radius: 16px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); }
+    .qr-image { display: block; border-radius: 8px; }
+    .qr-placeholder { width: 250px; height: 250px; display: flex; align-items: center; justify-content: center; color: #94a3b8; }
+    .network-badge { margin-top: 1rem; padding: 0.5rem 1rem; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 50px; font-size: 0.875rem; }
+    .network-name { color: #818cf8; font-weight: 600; }
+    .actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; width: 100%; }
+    .actions button { flex: 1; padding: 0.75rem 1rem; border: none; border-radius: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
+    .btn-secondary { background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); }
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; max-width: 900px; margin: 2rem auto 0; }
+    .feature { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.5rem; text-align: center; }
+    .feature-icon { width: 50px; height: 50px; background: rgba(99, 102, 241, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1rem; }
+    .feature h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .feature p { font-size: 0.875rem; color: #94a3b8; }
+    .footer { text-align: center; margin-top: 2rem; color: #64748b; font-size: 0.875rem; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); padding: 0.75rem 1.5rem; background: rgba(0, 0, 0, 0.9); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 50px; color: #fff; font-size: 0.875rem; z-index: 1000; }
+  </style>
+}
+
+export component App() {
+  <WifiCard />
+}
