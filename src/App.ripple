@@ -341,7 +341,7 @@ component WifiCard() {
             </div>
 
             <div class="size-field">
-              <label>{'Tamanho: '}<strong>{@size}px</strong></label>
+              <label>{'Tamanho: '}<strong>{@size}{'px'}</strong></label>
               <input 
                 type="range" 
                 min="200" 
