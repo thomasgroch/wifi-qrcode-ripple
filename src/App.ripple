@@ -232,10 +232,10 @@ component WifiCard() {
           <div class="logo">{'📡'}</div>
         </div>
         <h1 class="title">
-          <span class="title-word">WiFi</span>
-          <span class="title-highlight">QR</span>
+          <span class="title-word">{'WiFi'}</span>
+          <span class="title-highlight">{'QR'}</span>
         </h1>
-        <p class="subtitle">Gere QR codes com estilo</p>
+        <p class="subtitle">{'Gere QR codes com estilo'}</p>
       </header>
 
       <div class="cards-wrapper">
@@ -243,12 +243,12 @@ component WifiCard() {
           <div class="card-glow"></div>
           <h2 class="card-title">
             <span class="title-icon">{'⚡'}</span>
-            <span>Configurações</span>
+            <span>{'Configurações'}</span>
           </h2>
           
           <div class="field-group">
             <label class="field-label">
-              <span class="label-text">Nome da Rede</span>
+              <span class="label-text">{'Nome da Rede'}</span>
               <span class="label-line"></span>
             </label>
             <div class="input-wrapper">
@@ -265,7 +265,7 @@ component WifiCard() {
 
           <div class="field-group">
             <label class="field-label">
-              <span class="label-text">Senha</span>
+              <span class="label-text">{'Senha'}</span>
               <span class="label-line"></span>
             </label>
             <div class="input-wrapper">
@@ -290,7 +290,7 @@ component WifiCard() {
 
           <div class="field-group">
             <label class="field-label">
-              <span class="label-text">Segurança</span>
+              <span class="label-text">{'Segurança'}</span>
               <span class="label-line"></span>
             </label>
             <div class="select-wrapper">
@@ -299,20 +299,20 @@ component WifiCard() {
                 onChange={(e) => @security = e.target.value}
                 class="select"
               >
-                <option value="WPA">WPA / WPA2</option>
-                <option value="WEP">WEP</option>
-                <option value="nopass">Sem senha</option>
+                <option value="WPA">{'WPA / WPA2'}</option>
+                <option value="WEP">{'WEP'}</option>
+                <option value="nopass">{'Sem senha'}</option>
               </select>
               <div class="select-arrow">{'▼'}</div>
             </div>
           </div>
 
           <div class="customize-section">
-            <h3 class="section-title">Personalização</h3>
+            <h3 class="section-title">{'Personalização'}</h3>
             
             <div class="color-grid">
               <div class="color-field">
-                <label>Cor do QR</label>
+                <label>{'Cor do QR'}</label>
                 <div class="color-picker-wrapper">
                   <input 
                     type="color" 
@@ -326,7 +326,7 @@ component WifiCard() {
               </div>
               
               <div class="color-field">
-                <label>Fundo</label>
+                <label>{'Fundo'}</label>
                 <div class="color-picker-wrapper">
                   <input 
                     type="color" 
@@ -341,7 +341,7 @@ component WifiCard() {
             </div>
 
             <div class="size-field">
-              <label>Tamanho: <strong>{@size}px</strong></label>
+              <label>{'Tamanho: '}<strong>{@size}px</strong></label>
               <input 
                 type="range" 
                 min="200" 
@@ -358,7 +358,7 @@ component WifiCard() {
           <div class="card-glow"></div>
           <h2 class="card-title">
             <span class="title-icon">{'📱'}</span>
-            <span>Seu QR Code</span>
+            <span>{'Seu QR Code'}</span>
           </h2>
           
           <div class={`qr-container ${isGenerating ? 'generating' : ''}`}>
@@ -375,7 +375,7 @@ component WifiCard() {
             } else {
               <div class="qr-placeholder">
                 <div class="placeholder-icon">{'📡'}</div>
-                <p>Digite o nome da rede</p>
+                <p>{'Digite o nome da rede'}</p>
               </div>
             }
           </div>
@@ -399,7 +399,7 @@ component WifiCard() {
               disabled={!@qrDataUrl}
             >
               <span class="btn-icon">{'⬇'}</span>
-              <span class="btn-text">Baixar</span>
+              <span class="btn-text">{'Baixar'}</span>
               <div class="btn-glow"></div>
             </button>
             <button 
@@ -408,7 +408,7 @@ component WifiCard() {
               disabled={!@qrDataUrl}
             >
               <span class="btn-icon">{'📋'}</span>
-              <span class="btn-text">Copiar</span>
+              <span class="btn-text">{'Copiar'}</span>
             </button>
           </div>
         </div>
@@ -417,24 +417,24 @@ component WifiCard() {
       <div class="features">
         <div class="feature-card">
           <div class="feature-icon pulse">{'⚡'}</div>
-          <h3>Instantâneo</h3>
-          <p>Conexão automática ao escanear</p>
+          <h3>{'Instantâneo'}</h3>
+          <p>{'Conexão automática ao escanear'}</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon spin">{'🎨'}</div>
-          <h3>Personalizável</h3>
-          <p>Cores e tamanho ajustáveis</p>
+          <h3>{'Personalizável'}</h3>
+          <p>{'Cores e tamanho ajustáveis'}</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon bounce">{'🔒'}</div>
-          <h3>Seguro</h3>
-          <p>Processamento 100% local</p>
+          <h3>{'Seguro'}</h3>
+          <p>{'Processamento 100% local'}</p>
         </div>
       </div>
 
       <footer class="footer">
         <div class="footer-line"></div>
-        <p>Criado com {'💜'} usando Ripple-TS</p>
+        <p>{'Criado com 💜 usando Ripple-TS'}</p>
       </footer>
     </div>
 
